@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.models import db, User
 from api.utils import generate_sitemap, APIException
-from flask_jwt_extended import create_acess_token, jwt_required; get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 api = Blueprint('api', __name__)
 
@@ -20,7 +20,7 @@ def handle_hello():
 
 @api.route('/signup', methods=['POST'])
 def handle_signup():
-    request_body_user = request.get_json(
+    request_body_user = request.get_json()
     print (request_body_user)
     user = User.query.filter_by(email=request_body_user["email"], password=request_body_user["password"]).first()
     
@@ -45,23 +45,20 @@ def login():
 
     if not user:
         return jsonify({"message": "Email and password incorrect"})
-    token = create_acess_token(identity=user.id)
-    print(token)
+    access_token = create_access_token(identity=user.id)
 
-    return jsonify({"message": token, "user_id": user.id})
+    return jsonify({"token": access_token, "user_id": user.id})
 
 
-@api.route('/private', methods=['POST'])
+@api.route('/private', methods=['GET'])
 @jwt_required()
 def validate_token():
-    data = request.json
     
     current_user_id = get_jwt_identity()
     print(current_user_id)
 
-user = User.query.filter_by(id=current_user_id).first()
-if user is None:
-    raise APIException("User not found", status_code=404)
-print(user)
+    user = User.query.filter_by(id=current_user_id).first()
+    if user is None:
+        raise APIException("User not found", status_code=404)
 
-return jsonify("User authenticated"), 200
+    return jsonify("User authenticated"), 200
